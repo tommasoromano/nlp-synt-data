@@ -150,7 +150,7 @@ class ResponseGenerator():
 
     @staticmethod
     def generate(
-        data_path_name: str,
+        file_path: str,
         texts: list[tuple[str, str]],
         prompts: list[tuple[str, str]],
         model_func: callable,
@@ -162,10 +162,10 @@ class ResponseGenerator():
         - model_func: function that takes (prompt, text) and returns response
         """
 
-        if data_path_name in os.listdir(data_path_name):
-            res_df = pd.read_csv(data_path_name)
+        try:
+            res_df = pd.read_csv(file_path)
             print(f"Loaded {len(res_df)} rows.")
-        else:
+        except: 
             res_df = pd.DataFrame({'prompt_id':[], 'text_id':[], 'response':[]})
             print("Created new dataframe.")
 
@@ -176,9 +176,5 @@ class ResponseGenerator():
 
                 if len(res_df) % save_every == 0:
                     print(f"Processed {len(res_df)} rows.")
-                    res_df.to_csv(data_path_name, index=False)
-
-    @staticmethod
-    def get_results(data_path_name: str):
-        return pd.read_csv(data_path_name)
+                    res_df.to_csv(file_path, index=False)
         

@@ -73,3 +73,19 @@ DataGenerator.get("t#1_JOB#0_PERSON#0_POS#0", texts_with_keys, substitutions)
 ```
 {'keys': {'JOB': 'job0', 'PERSON': 'person0', 'POS': 'pos0'}, 'text': 'person0 is working as a job0 in pos0', 'text_with_keys': '[PERSON] is working as a [JOB] in [POS]'}
 ```
+
+## ResponseGenerator
+
+#### generate
+
+This is an example of using this library with ollama llm models
+
+```python
+prompts = PromptGenerator.generate(prompts_dict, prompt_keys)
+data = DataGenerator.generate(texts_with_keys, substitutions)
+model_func = lambda prompt, text: ollama.chat(model='llama3:instruct', messages=[
+                { 'role': 'system', 'content': prompt, },
+                { 'role': 'user', 'content': text, },
+            ])['message']['content']
+generator.ResponseGenerator.generate("results.csv", data, prompts, model_func)
+```
