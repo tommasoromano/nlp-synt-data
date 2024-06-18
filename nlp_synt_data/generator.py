@@ -1,3 +1,6 @@
+from itertools import combinations
+import pandas as pd
+import os
 
 class PromptGenerator():
 
@@ -77,13 +80,105 @@ class DataGenerator():
 
     @staticmethod
     def generate(
-        texts_with_tokens: list[str],
+        texts_with_keys: list[str],
         substitutions: dict,
     ):
-        """- texts_with_tokens: list of texts with tokens to be substituted
+        """- texts_with_keys: list of texts with keys to be substituted
         - substitutions: dict of substitutions to be made
-        - returns: list of texts with substitutions made
-        
-        Example: generate(["We are hiring a [JOB]"], {"[JOB]": ["job0", "job1"]})"""
+        - returns: list of tuple (text_id, text)"""
 
-        return
+        final_texts = []
+
+        if "t" in substitutions:
+            raise ValueError("Key 't' is reserved for text id")
+        if any([any(char.isdigit() for char in key) for key in substitutions]):
+            raise ValueError("Keys cannot contain numbers")
+        if any([any(char == '_' for char in key) for key in substitutions]):
+            raise ValueError("Keys cannot contain underscores")
+        if any([any(char == '#' for char in key) for key in substitutions]):
+            raise ValueError("Keys cannot contain #")
+        
+        def add_text(key, prev_prompts):
+            return [
+            (f"{p_key}_{key}#{x_i}", p_p.replace(f"[{key}]", x_p))
+            for p_key, p_p in prev_prompts
+            for x_i, x_p in enumerate(substitutions[key])
+            ]
+        
+        final_texts = []
+
+        for it, text in enumerate(texts_with_keys):
+            _real_keys = [key for key in substitutions if key in text]
+            acc_texts = [(f"t#{it}", text)]
+            for key in _real_keys:
+                acc_texts = add_text(key, acc_texts)
+            final_texts += acc_texts
+
+        return final_texts
+    
+    @staticmethod
+    def get(
+        text_id: str,
+        texts_with_keys: list[str],
+        substitutions: dict
+    ):
+        
+        keys = text_id.split("_")
+        if keys[0][:2] != "t#":
+            raise ValueError("Invalid text id")
+        
+        res = {
+            'keys': {},
+        }
+        base_text = texts_with_keys[int(keys[0].split("#")[1])]
+        text = base_text
+        for _key in keys[1:]:
+            n = int(_key.split("#")[1])
+            key = _key.split("#")[0]
+            if key not in substitutions:
+                raise ValueError(f"Key {key} not in substitutions")
+            if n >= len(substitutions[key]):
+                raise ValueError(f"Index {n} out of range for key {key}")
+            
+            res["keys"][key] = substitutions[key][n]
+            text = text.replace(f"[{key}]", substitutions[key][n])
+        res["text"] = text
+        res["text_with_keys"] = base_text
+        return res
+    
+class ResponseGenerator():
+
+    @staticmethod
+    def generate(
+        data_path_name: str,
+        texts: list[tuple[str, str]],
+        prompts: list[tuple[str, str]],
+        model_func: callable,
+        save_every: int = 100,
+    ):
+        """- data_path_name: name of the data file to save/load
+        - texts: list of tuples (text_id, text)
+        - prompts: list of tuples (prompt_id, prompt)
+        - model_func: function that takes (prompt, text) and returns response
+        """
+
+        if data_path_name in os.listdir(data_path_name):
+            res_df = pd.read_csv(data_path_name)
+            print(f"Loaded {len(res_df)} rows.")
+        else:
+            res_df = pd.DataFrame({'prompt_id':[], 'text_id':[], 'response':[]})
+            print("Created new dataframe.")
+
+        for prompt_id, prompt in prompts:
+            for text_id, text in texts:
+                res = model_func(prompt, text)
+                res_df.loc[len(res_df)] = [prompt_id, text_id, res]
+
+                if len(res_df) % save_every == 0:
+                    print(f"Processed {len(res_df)} rows.")
+                    res_df.to_csv(data_path_name, index=False)
+
+    @staticmethod
+    def get_results(data_path_name: str):
+        return pd.read_csv(data_path_name)
+        

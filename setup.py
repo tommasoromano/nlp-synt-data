@@ -6,7 +6,8 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="nlp_synt_data",
     packages=["nlp_synt_data"],
-    version="0.0.2",
+    install_requires=['pandas'],
+    version="0.0.3",
     author="Tommaso Romano'",
     author_email="romabob1300@gmail.com",
     description="Synthesized Data for NLP Tasks",
