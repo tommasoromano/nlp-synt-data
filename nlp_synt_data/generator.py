@@ -80,12 +80,12 @@ class DataGenerator():
 
     @staticmethod
     def generate(
-        texts_with_keys: list[str],
-        substitutions: dict,
+        texts_with_keys: list[tuple[str,str]],
+        substitutions: dict[str,list[tuple[str,str]]],
     ):
-        """- texts_with_keys: list of texts with keys to be substituted
-        - substitutions: dict of substitutions to be made
-        - returns: list of tuple (text_id, text)"""
+        """- texts_with_keys: list of (text with keys, label)
+        - substitutions: dict of list of (substitution, label)
+        - returns: list of tuple (text_id, text, list of labels)"""
 
         final_texts = []
 
@@ -100,16 +100,16 @@ class DataGenerator():
         
         def add_text(key, prev_prompts):
             return [
-            (f"{p_key}_{key}#{x_i}", p_p.replace(f"[{key}]", x_p))
-            for p_key, p_p in prev_prompts
-            for x_i, x_p in enumerate(substitutions[key])
+            (f"{p_key}_{key}#{x_i}", p_p.replace(f"[{key}]", x_p), p_ls+[x_l])
+            for p_key, p_p, p_ls in prev_prompts
+            for x_i, (x_p, x_l) in enumerate(substitutions[key])
             ]
         
         final_texts = []
 
-        for it, text in enumerate(texts_with_keys):
+        for it, (text, label) in enumerate(texts_with_keys):
             _real_keys = [key for key in substitutions if key in text]
-            acc_texts = [(f"t#{it}", text)]
+            acc_texts = [(f"t#{it}", text, [label])]
             for key in _real_keys:
                 acc_texts = add_text(key, acc_texts)
             final_texts += acc_texts
@@ -119,8 +119,8 @@ class DataGenerator():
     @staticmethod
     def get(
         text_id: str,
-        texts_with_keys: list[str],
-        substitutions: dict
+        texts_with_keys: list[tuple[str,str]],
+        substitutions: dict[str,list[tuple[str,str]]],
     ):
         
         keys = text_id.split("_")
@@ -130,8 +130,8 @@ class DataGenerator():
         res = {
             'keys': {},
         }
-        base_text = texts_with_keys[int(keys[0].split("#")[1])]
-        text = base_text
+        res['text_with_keys'] = texts_with_keys[int(keys[0].split("#")[1])]
+        text = res['text_with_keys'][0]
         for _key in keys[1:]:
             n = int(_key.split("#")[1])
             key = _key.split("#")[0]
@@ -141,9 +141,8 @@ class DataGenerator():
                 raise ValueError(f"Index {n} out of range for key {key}")
             
             res["keys"][key] = substitutions[key][n]
-            text = text.replace(f"[{key}]", substitutions[key][n])
-        res["text"] = text
-        res["text_with_keys"] = base_text
+            text = text.replace(f"[{key}]", substitutions[key][n][0])
+        res["text"] = (text, res["text_with_keys"][1])
         return res
     
 class ResponseGenerator():
@@ -151,10 +150,12 @@ class ResponseGenerator():
     @staticmethod
     def generate(
         file_path: str,
-        texts: list[tuple[str, str]],
+        texts: list[tuple[str, str, str]],
         prompts: list[tuple[str, str]],
         model_func: callable,
-        save_every: int = 100,
+        save_every: int = 50,
+        make_labels: bool = True,
+        verbose: bool = True,
     ):
         """- data_path_name: name of the data file to save/load
         - texts: list of tuples (text_id, text)
@@ -164,17 +165,35 @@ class ResponseGenerator():
 
         try:
             res_df = pd.read_csv(file_path)
-            print(f"Loaded {len(res_df)} rows.")
+            verbose and print(f"Loaded {len(res_df)} rows.")
+            make_labels = 'text_labels' in res_df.columns
         except: 
-            res_df = pd.DataFrame({'prompt_id':[], 'text_id':[], 'response':[]})
-            print("Created new dataframe.")
+            if not make_labels:
+                res_df = pd.DataFrame({'prompt_id':[], 'text_id':[], 'response':[]})
+            else:
+                res_df = pd.DataFrame({'prompt_id':[], 'text_id':[], 'text_labels':[], 'response':[]})
+            verbose and print("Created new dataframe.")
 
         for prompt_id, prompt in prompts:
-            for text_id, text in texts:
+            for text_id, text, labels in texts:
+
+                if len(res_df) > 0 and res_df[(res_df['prompt_id'] == prompt_id) & (res_df['text_id'] == text_id)].shape[0] > 0:
+                    continue
+
                 res = model_func(prompt, text)
-                res_df.loc[len(res_df)] = [prompt_id, text_id, res]
+                if make_labels:
+                    res_df.loc[len(res_df)] = [prompt_id, text_id, str(labels), res]
+                else:
+                    res_df.loc[len(res_df)] = [prompt_id, text_id, res]
 
                 if len(res_df) % save_every == 0:
-                    print(f"Processed {len(res_df)} rows.")
+                    verbose and print(f"Processed {len(res_df)} rows.")
                     res_df.to_csv(file_path, index=False)
-        
+
+class Utils():
+
+    @staticmethod
+    def list_to_dict(ls: list[tuple[str,str]]):
+        """- ls: list of (text, label)
+        - return: dict of label: text"""
+        return {l:list(map(lambda x: x[0], filter(lambda x: x[1] == l, ls)))  for l in set([l for t,l in ls])}

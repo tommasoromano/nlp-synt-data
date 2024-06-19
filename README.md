@@ -3,7 +3,7 @@
 Synthetic Data Tools for Natural Language Processing (NLP) and Large Language Models (LLM) tasks
 
 - generate prompts (and prompt ids)
-- generate synthesized data (and data ids)
+- generate synthetic data (and data ids)
 - retrieve prompts and data from ids (to reduce generated dataset size)
 
 ## Installation
@@ -12,11 +12,15 @@ Synthetic Data Tools for Natural Language Processing (NLP) and Large Language Mo
 pip install nlp-synt-data
 ```
 
-## PromptGenerator
+## Quickstart
 
-### generate
+An example of this library with `ollama`
 
 ```python
+from nlp-synt-data import *
+import ollama
+
+# generate prompts
 prompts_dict = {
     "a": ["promptA0", "promptA1"],
     "b": ["promptB0", "promptB1"],
@@ -24,68 +28,40 @@ prompts_dict = {
     "d": ["promptD0", "promptD1"],
     "e": ["promptE0", "promptE1"],
 }
-PromptGenerator.generate(prompts_dict, [["c","e"],["a","b","d"]])
-```
+prompts = PromptGenerator.generate(prompts_dict, [["c","e"],["a","b","d"]])
 
-```
-[('c#0_e#0', 'promptC0 promptE0'), ('c#0_e#1', 'promptC0 promptE1'), ('c#1_e#0', 'promptC1 promptE0'), ('c#1_e#1', 'promptC1 promptE1'), ('a#0_b#0_d#0', 'promptA0 promptB0 promptD0'), ('a#0_b#0_d#1', 'promptA0 promptB0 promptD1'), ('a#0_b#1_d#0', 'promptA0 promptB1
-promptD0'), ('a#0_b#1_d#1', 'promptA0 promptB1 promptD1'), ('a#1_b#0_d#0', 'promptA1 promptB0 promptD0'), ('a#1_b#0_d#1', 'promptA1 promptB0 promptD1'), ('a#1_b#1_d#0', 'promptA1 promptB1 promptD0'), ('a#1_b#1_d#1', 'promptA1 promptB1 promptD1')]
-```
-
-### get
-
-```python
-PromptGenerator.get("c#0_e#0", prompts_dict)
-```
-
-```
-promptC0 promptE0
-```
-
-## DataGenerator
-
-### generate
-
-```python
+# generate texts
 texts_with_keys = [
-    "[PERSON]",
-    "[PERSON] is working as a [JOB] in [POS]",
+    ("[PERSON]","label0"),
+    ("[PERSON] is working as a [JOB] in [POS]","label1"),
     ]
 substitutions = {
-    "JOB": ["job0", "job1"],
-    "PERSON": ["person0", "person1"],
-    "POS": ["pos0", "pos1"]
+    "JOB": [("job0","labeljob0"), ("job1","labeljob1")],
+    "PERSON": [("person0","labelperson0"), ("person1","labelperson1")],
+    "POS": [("pos0","labelpos0"), ("pos1","labelpos1")]
 }
+texts = DataGenerator.generate(texts_with_keys, substitutions)
 
-DataGenerator.generate(texts_with_keys, substitutions)
-```
-
-```
-[('t#0_PERSON#0', 'person0'), ('t#0_PERSON#1', 'person1'), ('t#1_JOB#0_PERSON#0_POS#0', 'person0 is working as a job0 in pos0'), ('t#1_JOB#0_PERSON#0_POS#1', 'person0 is working as a job0 in pos1'), ('t#1_JOB#0_PERSON#1_POS#0', 'person1 is working as a job0 in pos0'), ('t#1_JOB#0_PERSON#1_POS#1', 'person1 is working as a job0 in pos1'), ('t#1_JOB#1_PERSON#0_POS#0', 'person0 is working as a job1 in pos0'), ('t#1_JOB#1_PERSON#0_POS#1', 'person0 is working as a job1 in pos1'), ('t#1_JOB#1_PERSON#1_POS#0', 'person1 is working as a job1 in pos0'), ('t#1_JOB#1_PERSON#1_POS#1', 'person1 is working as a job1 in pos1')]
-```
-
-### get
-
-```python
-DataGenerator.get("t#1_JOB#0_PERSON#0_POS#0", texts_with_keys, substitutions)
-```
-
-```
-{'keys': {'JOB': 'job0', 'PERSON': 'person0', 'POS': 'pos0'}, 'text': 'person0 is working as a job0 in pos0', 'text_with_keys': '[PERSON] is working as a [JOB] in [POS]'}
-```
-
-## ResponseGenerator
-
-#### generate
-
-This is an example of using this library with ollama llm models
-
-```python
-prompts = PromptGenerator.generate(prompts_dict, prompt_keys)
-data = DataGenerator.generate(texts_with_keys, substitutions)
+# generate responses
 model_func = lambda prompt, text: ollama.chat(model='llama3:instruct', messages=[
                 { 'role': 'system', 'content': prompt, },
                 { 'role': 'user', 'content': text, },
             ])['message']['content']
-generator.ResponseGenerator.generate("results.csv", data, prompts, model_func)
+ResponseGenerator.generate("results.csv", texts, prompts, model_func)
 ```
+
+results.csv
+
+| prompt_id | text_id                  | text_labels                                          | response |
+| --------- | ------------------------ | ---------------------------------------------------- | -------- |
+| c#0_e#0   | t#0_PERSON#0             | ['label0', 'labelperson0']                           | response |
+| c#0_e#0   | t#0_PERSON#1             | ['label0', 'labelperson1']                           | response |
+| c#0_e#0   | t#1_JOB#0_PERSON#0_POS#0 | ['label1', 'labeljob0', 'labelperson0', 'labelpos0'] | response |
+| c#0_e#0   | t#1_JOB#0_PERSON#0_POS#1 | ['label1', 'labeljob0', 'labelperson0', 'labelpos1'] | response |
+| c#0_e#0   | t#1_JOB#0_PERSON#1_POS#0 | ['label1', 'labeljob0', 'labelperson1', 'labelpos0'] | response |
+| c#0_e#0   | t#1_JOB#0_PERSON#1_POS#1 | ['label1', 'labeljob0', 'labelperson1', 'labelpos1'] | response |
+| c#0_e#0   | t#1_JOB#1_PERSON#0_POS#0 | ['label1', 'labeljob1', 'labelperson0', 'labelpos0'] | response |
+| c#0_e#0   | t#1_JOB#1_PERSON#0_POS#1 | ['label1', 'labeljob1', 'labelperson0', 'labelpos1'] | response |
+| c#0_e#0   | t#1_JOB#1_PERSON#1_POS#0 | ['label1', 'labeljob1', 'labelperson1', 'labelpos0'] | response |
+| c#0_e#0   | t#1_JOB#1_PERSON#1_POS#1 | ['label1', 'labeljob1', 'labelperson1', 'labelpos1'] | response |
+| ...       | ...                      | ...                                                  | ...      |
