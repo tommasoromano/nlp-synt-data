@@ -17,7 +17,7 @@ pip install nlp-synt-data
 An example of this library with `ollama`
 
 ```python
-from nlp-synt-data import *
+from nlp_synt_data import *
 import ollama
 
 # generate prompts
