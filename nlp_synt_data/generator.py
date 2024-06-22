@@ -207,7 +207,6 @@ class ResponseGenerator():
                         row[f"text_{k}_value"] = data.info[k]['value']
                         row[f"text_{k}_label"] = data.info[k]['label']
                 
-                print(row['text_id'])
                 res_df = pd.concat([res_df, pd.DataFrame([row])])
 
                 if len(res_df) % save_every == 0:

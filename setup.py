@@ -7,7 +7,7 @@ setuptools.setup(
     name="nlp_synt_data",
     packages=["nlp_synt_data"],
     install_requires=['pandas'],
-    version="0.0.7",
+    version="0.0.8",
     author="Tommaso Romano'",
     author_email="romabob1300@gmail.com",
     description="Synthesized Data for NLP Tasks",
