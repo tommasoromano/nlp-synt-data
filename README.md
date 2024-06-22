@@ -51,17 +51,11 @@ ResponseGenerator.generate("results.csv", texts, prompts, model_func)
 ```
 
 results.csv
-
-| prompt_id | text_id                  | text_labels                                          | response |
-| --------- | ------------------------ | ---------------------------------------------------- | -------- |
-| c#0_e#0   | t#0_PERSON#0             | ['label0', 'labelperson0']                           | response |
-| c#0_e#0   | t#0_PERSON#1             | ['label0', 'labelperson1']                           | response |
-| c#0_e#0   | t#1_JOB#0_PERSON#0_POS#0 | ['label1', 'labeljob0', 'labelperson0', 'labelpos0'] | response |
-| c#0_e#0   | t#1_JOB#0_PERSON#0_POS#1 | ['label1', 'labeljob0', 'labelperson0', 'labelpos1'] | response |
-| c#0_e#0   | t#1_JOB#0_PERSON#1_POS#0 | ['label1', 'labeljob0', 'labelperson1', 'labelpos0'] | response |
-| c#0_e#0   | t#1_JOB#0_PERSON#1_POS#1 | ['label1', 'labeljob0', 'labelperson1', 'labelpos1'] | response |
-| c#0_e#0   | t#1_JOB#1_PERSON#0_POS#0 | ['label1', 'labeljob1', 'labelperson0', 'labelpos0'] | response |
-| c#0_e#0   | t#1_JOB#1_PERSON#0_POS#1 | ['label1', 'labeljob1', 'labelperson0', 'labelpos1'] | response |
-| c#0_e#0   | t#1_JOB#1_PERSON#1_POS#0 | ['label1', 'labeljob1', 'labelperson1', 'labelpos0'] | response |
-| c#0_e#0   | t#1_JOB#1_PERSON#1_POS#1 | ['label1', 'labeljob1', 'labelperson1', 'labelpos1'] | response |
-| ...       | ...                      | ...                                                  | ...      |
+|prompt_id |text_id |text_labels|response|text_PERSON_value|text_JOB_value|text_POS_value|text_PERSON_label|text_JOB_label|text_POS_label|
+|-----------|---------------------------------------------------------------------------------------------------|-----------|--------|-----------------|--------------|--------------|-----------------|--------------|--------------|
+|c#0_e#0 |t#0_PERSON#0 |label0 |response|person0 | | |labelperson0 | | |
+|c#0_e#0 |t#0_PERSON#1 |label0 |response|person1 | | |labelperson1 | | |
+|c#0_e#0 |t#1_JOB#0_PERSON#0_POS#0 |label1 |response|person0 |job0 |pos0 |labelperson0 |labeljob0 |labelpos0 |
+|c#0_e#0 |t#1_JOB#0_PERSON#0_POS#1 |label1 |response|person0 |job0 |pos1 |labelperson0 |labeljob0 |labelpos1 |
+|c#0_e#0 |t#1_JOB#0_PERSON#1_POS#0 |label1 |response|person1 |job0 |pos0 |labelperson1 |labeljob0 |labelpos0 |
+|... |... |... |...|... |... |... |... |... |... |
