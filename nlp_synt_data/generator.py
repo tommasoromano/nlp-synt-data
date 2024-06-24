@@ -1,6 +1,7 @@
 from itertools import combinations
 import pandas as pd
 import os
+from datetime import datetime as dt
 
 class PromptGenerator():
 
@@ -186,6 +187,9 @@ class ResponseGenerator():
             res_df = pd.DataFrame(cols)
             verbose and print("Created new dataframe.")
 
+        start_time = dt.now()
+        start_rows = len(res_df)
+
         for prompt_id, prompt in prompts:
             for data in texts:
                 # print(data.id)
@@ -210,10 +214,14 @@ class ResponseGenerator():
                 res_df = pd.concat([res_df, pd.DataFrame([row])])
 
                 if len(res_df) % save_every == 0:
-                    verbose and print(f"Processed {len(res_df)} rows.")
+                    t1 = dt.now()
+                    pace = (t1-start_time).seconds / (len(res_df) - start_rows)
+                    verbose and print(f"Processed {len(res_df)-start_rows} rows. Time: {t1-start_time}, Pace: {pace:.2f} sec/row.")
                     res_df.to_csv(file_path, index=False)
 
-        verbose and print(f"Finished: {len(res_df)} rows.")
+        final_time = dt.now()
+        pace = (final_time-start_time).seconds / (len(res_df) - start_rows)
+        verbose and print(f"Finished: {len(res_df)-start_rows} rows. Time: {final_time-start_time}, Pace: {pace:.2f} sec/row.")
         res_df.to_csv(file_path, index=False)
         return res_df
 
