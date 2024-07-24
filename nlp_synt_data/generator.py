@@ -169,6 +169,7 @@ class ResponseGenerator():
         model_func: callable,
         save_every: int = 50,
         verbose: bool = True,
+        n_pass: int = 1,
     ):
         """- data_path_name: name of the data file to save/load
         - texts: list of Data
@@ -190,34 +191,36 @@ class ResponseGenerator():
         start_time = dt.now()
         start_rows = len(res_df)
 
-        for prompt_id, prompt in prompts:
-            for data in texts:
-                # print(data.id)
-                if len(res_df) > 0 and res_df[(res_df['prompt_id'] == prompt_id) & (res_df['text_id'] == data.id)].shape[0] > 0:
-                    continue
+        for n in range(n_pass):
+            for prompt_id, prompt in prompts:
+                for data in texts:
+                    # print(data.id)
+                    text_id = data.id[:1] + str(n) + data.id[1:] if n > 0 else data.id
+                    if len(res_df) > 0 and res_df[(res_df['prompt_id'] == prompt_id) & (res_df['text_id'] == text_id)].shape[0] > 0:
+                        continue
 
-                res = model_func(prompt, data.text)
-                row = {
-                    'prompt_id': prompt_id,
-                    'text_id': data.id,
-                    'text_labels': data.text_label,
-                    'response': res
-                }
-                for k in unique_keys:
-                    if k not in data.info:
-                        row[f"text_{k}_value"] = None
-                        row[f"text_{k}_label"] = None
-                    else:
-                        row[f"text_{k}_value"] = data.info[k]['value']
-                        row[f"text_{k}_label"] = data.info[k]['label']
-                
-                res_df = pd.concat([res_df, pd.DataFrame([row])])
+                    res = model_func(prompt, data.text)
+                    row = {
+                        'prompt_id': prompt_id,
+                        'text_id': text_id,
+                        'text_labels': data.text_label,
+                        'response': res
+                    }
+                    for k in unique_keys:
+                        if k not in data.info:
+                            row[f"text_{k}_value"] = None
+                            row[f"text_{k}_label"] = None
+                        else:
+                            row[f"text_{k}_value"] = data.info[k]['value']
+                            row[f"text_{k}_label"] = data.info[k]['label']
+                    
+                    res_df = pd.concat([res_df, pd.DataFrame([row])])
 
-                if len(res_df) % save_every == 0:
-                    t1 = dt.now()
-                    pace = (t1-start_time).seconds / (len(res_df) - start_rows)
-                    verbose and print(f"Processed {len(res_df)-start_rows} rows. Time: {t1-start_time}, Pace: {pace:.2f} sec/row.")
-                    res_df.to_csv(file_path, index=False)
+                    if len(res_df) % save_every == 0:
+                        t1 = dt.now()
+                        pace = (t1-start_time).seconds / (len(res_df) - start_rows)
+                        verbose and print(f"Processed {len(res_df)-start_rows} rows. Time: {t1-start_time}, Pace: {pace:.2f} sec/row.")
+                        res_df.to_csv(file_path, index=False)
 
         final_time = dt.now()
         pace = (final_time-start_time).seconds / (len(res_df) - start_rows)
