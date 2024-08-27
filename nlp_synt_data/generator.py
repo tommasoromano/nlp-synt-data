@@ -182,7 +182,7 @@ class ResponseGenerator():
             res_df = pd.read_csv(file_path)
             verbose and print(f"Loaded {len(res_df)} rows.")
         except Exception as e: 
-            cols = {'prompt_id':[], 'text_id':[], 'text_labels':[], 'response':[]}
+            cols = {'prompt_id':[], 'text':[], 'text_labels':[], 'response':[]}
             cols.update({f"text_{k}_value":[] for k in unique_keys})
             cols.update({f"text_{k}_label":[] for k in unique_keys})
             res_df = pd.DataFrame(cols)
@@ -194,15 +194,15 @@ class ResponseGenerator():
         for n in range(n_pass):
             for prompt_id, prompt in prompts:
                 for data in texts:
-                    # print(data.id)
-                    text_id = data.id[:1] + str(n) + data.id[1:] if n > 0 else data.id
-                    if len(res_df) > 0 and res_df[(res_df['prompt_id'] == prompt_id) & (res_df['text_id'] == text_id)].shape[0] > 0:
+                    # text_id = data.id[:1] + str(n) + data.id[1:] if n > 0 else data.id
+                    text = data.text
+                    if len(res_df) > 0 and res_df[(res_df['prompt_id'] == prompt_id) & (res_df['text'] == text)].shape[0] > 0:
                         continue
 
                     res = model_func(prompt, data.text)
                     row = {
                         'prompt_id': prompt_id,
-                        'text_id': text_id,
+                        'text': text,
                         'text_labels': data.text_label,
                         'response': res
                     }
@@ -223,7 +223,7 @@ class ResponseGenerator():
                         res_df.to_csv(file_path, index=False)
 
         final_time = dt.now()
-        pace = (final_time-start_time).seconds / (len(res_df) - start_rows)
+        pace = (final_time-start_time).seconds / max(1, len(res_df) - start_rows)
         verbose and print(f"Finished: {len(res_df)-start_rows} rows. Time: {final_time-start_time}, Pace: {pace:.2f} sec/row.")
         res_df.to_csv(file_path, index=False)
         return res_df
